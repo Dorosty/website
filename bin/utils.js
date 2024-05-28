@@ -23,11 +23,13 @@ exports.build = async isProduction => {
   const [
     template,
     outdatedTemplate,
+    outdatedBrowserPromptTemplate,
     mainCode,
     workerCode,
   ] = await Promise.all([
     read('bin/template.html'),
     read('bin/outdated.html'),
+    read('bin/outdated-browser-prompt.html'),
     build('src/index.js'),
     build('src/worker.js'),
   ])
@@ -38,15 +40,18 @@ exports.build = async isProduction => {
     : '`' + workerCodeString.replace(/\`/g, '\\\`').replace(/\$/g, '\\\$') + '`'
 
   const outTemplateString = "'" + outdatedTemplate.replace(/\n */g, '') + "'"
+  const outBrowserTemplateString = "'" + outdatedBrowserPromptTemplate.replace(/\n */g, '') + "'"
 
   let html = isProduction ? template.trim().replace(/\n */g, '') : template
   html = html.replace(
-    'jsCode', isWorkerEnabled
+    '{{jsCode}}', isWorkerEnabled
       ? 'var workerCode = workerCodeString;mainCode'
       : '(function(){workerCode})();(function(){mainCode})()'
     )
     .replace('mainCode', () => mainCode)
     .replace('outdatedTemplate', () => outTemplateString)
+    .replace('outdatedBrowserPromptTemplate', () => outBrowserTemplateString)
+
   return isWorkerEnabled
     ? html.replace('workerCodeString', () => workerCodeString)
     : html.replace('workerCode', () => workerCode)
